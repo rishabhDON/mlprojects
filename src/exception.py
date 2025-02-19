@@ -1,5 +1,5 @@
 import sys
-import logging
+from src.logger import logging
 
 logging.basicConfig(level=logging.DEBUG)  # Ensure logging messages are visible
 
@@ -23,6 +23,8 @@ class CustomException(Exception):
 
     def __str__(self):
         return self.error_message
+    
+
 
 
 
