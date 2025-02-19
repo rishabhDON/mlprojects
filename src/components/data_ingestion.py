@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 from dataclasses import dataclass
 from src.exception import CustomException
 from src.logger import logging
+from src.components.data_transformation import DataTransformation
 
 @dataclass
 class DataIngestionConfig:
@@ -17,48 +18,45 @@ class DataIngestion:
         self.ingestion_config = DataIngestionConfig()
 
     def initiate_data_ingestion(self):
-        logging.info("Entered the data ingestion method or component")
+        logging.info("Entered the data ingestion method")
+
         try:
-            # ✅ Check if dataset path is correct
+            # ✅ Ensure dataset path exists
             dataset_path = r'notebook/data/StudentsPerformance.csv'
             if not os.path.exists(dataset_path):
                 raise FileNotFoundError(f"Dataset not found at: {dataset_path}")
 
             df = pd.read_csv(dataset_path)
-            logging.info('Read the dataset as dataframe')
+            logging.info('Dataset loaded successfully')
 
-            # ✅ Ensure "artifacts" directory exists
-            artifacts_dir = "artifacts"
-            if not os.path.exists(artifacts_dir):
-                logging.info(f"Creating directory: {artifacts_dir}")
-                os.makedirs(artifacts_dir, exist_ok=True)
-            else:
-                logging.info(f"Directory already exists: {artifacts_dir}")
+            # ✅ Ensure required columns exist
+            required_columns = ["math score", "writing score", "reading score"]
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            if missing_columns:
+                raise ValueError(f"Missing columns in dataset: {missing_columns}")
 
-            # ✅ Check if folder is created successfully
-            assert os.path.exists(artifacts_dir), "Failed to create 'artifacts' directory"
+            # ✅ Ensure artifacts directory exists
+            os.makedirs("artifacts", exist_ok=True)
 
             df.to_csv(self.ingestion_config.raw_data_path, index=False, header=True)
             logging.info(f"Raw data saved at: {self.ingestion_config.raw_data_path}")
 
-            logging.info("Train-test split initiated")
+            # ✅ Perform train-test split
             train_set, test_set = train_test_split(df, test_size=0.2, random_state=42)
 
             train_set.to_csv(self.ingestion_config.train_data_path, index=False, header=True)
             test_set.to_csv(self.ingestion_config.test_data_path, index=False, header=True)
 
-            logging.info(f"Train data saved at: {self.ingestion_config.train_data_path}")
-            logging.info(f"Test data saved at: {self.ingestion_config.test_data_path}")
+            logging.info("Data ingestion completed successfully")
 
-            logging.info("Ingestion of the data is completed")
-
-            return (
-                self.ingestion_config.train_data_path,
-                self.ingestion_config.test_data_path
-            )
+            return self.ingestion_config.train_data_path, self.ingestion_config.test_data_path
+        
         except Exception as e:
             raise CustomException(e, sys)
 
 if __name__ == "__main__":
     obj = DataIngestion()
-    obj.initiate_data_ingestion()
+    train_data, test_data = obj.initiate_data_ingestion()
+
+    data_transformation = DataTransformation()
+    data_transformation.initiate_data_transformation(train_data, test_data)
